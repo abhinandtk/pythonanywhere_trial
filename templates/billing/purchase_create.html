@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% block title %}Create Purchase Order / Inward Stock{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <a href="{% url 'billing:purchase_list' %}" style="text-decoration: none; color: var(--text-muted);">&larr; Back to Purchase Orders</a>
+        <h1 class="page-title" style="margin-top: 0.25rem;">New Supplier Purchase Order</h1>
+        <div class="page-subtitle">Procure goods and add incoming shipments directly to inventory stock</div>
+    </div>
+</div>
+
+<form method="post" id="poForm">
+    {% csrf_token %}
+
+    <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header">
+            <h2 class="card-title">Order Information</h2>
+            <div style="font-weight: 700; color: var(--primary);">
+                # <input type="text" name="po_number" value="{{ new_po_number }}" style="width: 170px; display: inline-block; font-weight: 700;" required>
+            </div>
+        </div>
+        <div class="card-body">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem;">
+                <div class="form-group">
+                    <label class="form-label">Select Supplier *</label>
+                    <select name="supplier" required>
+                        <option value="">-- Choose Supplier --</option>
+                        {% for s in suppliers %}
+                        <option value="{{ s.id }}">{{ s.name }}{% if s.company_name %} ({{ s.company_name }}){% endif %}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Order Date *</label>
+                    <input type="date" name="order_date" value="{{ today }}" required>
+                </div>
+
+                <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1.75rem;">
+                    <input type="checkbox" name="auto_receive" id="id_auto_receive" checked class="form-checkbox">
+                    <label for="id_auto_receive" style="font-size: 0.875rem; font-weight: 600; cursor: pointer;">
+                        Receive items & update stock immediately
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header">
+            <h2 class="card-title">Purchased Items</h2>
+            <button type="button" id="addPoRowBtn" class="btn btn-secondary btn-sm">+ Add Item</button>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th style="min-width: 280px;">Product</th>
+                            <th style="width: 130px;">Quantity</th>
+                            <th style="width: 160px;">Unit Cost Price ({{ CURRENCY }})</th>
+                            <th style="width: 160px; text-align: right;">Total Cost ({{ CURRENCY }})</th>
+                            <th style="width: 50px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="poItemsTableBody">
+                        <tr class="po-item-row">
+                            <td>
+                                <select name="product_id[]" class="po-product-select" required>
+                                    <option value="">-- Choose Product --</option>
+                                    {% for p in products %}
+                                    <option value="{{ p.id }}" data-cost="{{ p.cost_price }}">{{ p.name }} (Current Stock: {{ p.current_stock|floatformat:0 }})</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td>
+                                <input type="number" name="quantity[]" class="po-qty-input" value="1" min="0.01" step="0.01" required>
+                            </td>
+                            <td>
+                                <input type="number" name="unit_cost[]" class="po-cost-input" value="0.00" min="0" step="0.01" required>
+                            </td>
+                            <td style="text-align: right; vertical-align: middle; font-weight: 700;">
+                                <span class="po-line-total">0.00</span>
+                            </td>
+                            <td style="text-align: center; vertical-align: middle;">
+                                <button type="button" class="btn-remove-po-row" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.1rem;">&times;</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-body" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div style="flex: 1; min-width: 280px;">
+                <label class="form-label">Purchase Notes / Invoice Ref</label>
+                <input type="text" name="notes" placeholder="e.g. Supplier invoice #, tracking code...">
+            </div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-main);">
+                Estimated Total: <span style="color: var(--primary);">{{ CURRENCY }}<span id="poGrandTotal">0.00</span></span>
+            </div>
+        </div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-bottom: 2rem;">
+        <a href="{% url 'billing:purchase_list' %}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary" style="padding: 0.75rem 2rem;">
+            📦 Create Purchase Order
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const tableBody = document.getElementById('poItemsTableBody');
+    const addRowBtn = document.getElementById('addPoRowBtn');
+    const grandTotalEl = document.getElementById('poGrandTotal');
+
+    function attachListeners(row) {
+        const prodSelect = row.querySelector('.po-product-select');
+        const qtyInput = row.querySelector('.po-qty-input');
+        const costInput = row.querySelector('.po-cost-input');
+        const removeBtn = row.querySelector('.btn-remove-po-row');
+
+        if (prodSelect) {
+            prodSelect.addEventListener('change', () => {
+                const opt = prodSelect.options[prodSelect.selectedIndex];
+                if (opt && opt.dataset.cost) {
+                    costInput.value = opt.dataset.cost;
+                }
+                recalc();
+            });
+        }
+
+        if (qtyInput) qtyInput.addEventListener('input', recalc);
+        if (costInput) costInput.addEventListener('input', recalc);
+
+        if (removeBtn) {
+            removeBtn.addEventListener('click', () => {
+                if (tableBody.querySelectorAll('.po-item-row').length > 1) {
+                    row.remove();
+                    recalc();
+                } else {
+                    alert('Order requires at least one product row.');
+                }
+            });
+        }
+    }
+
+    tableBody.querySelectorAll('.po-item-row').forEach(attachListeners);
+
+    if (addRowBtn) {
+        addRowBtn.addEventListener('click', () => {
+            const firstRow = tableBody.querySelector('.po-item-row');
+            if (!firstRow) return;
+            const newRow = firstRow.cloneNode(true);
+            newRow.querySelector('.po-product-select').selectedIndex = 0;
+            newRow.querySelector('.po-qty-input').value = '1';
+            newRow.querySelector('.po-cost-input').value = '0.00';
+            newRow.querySelector('.po-line-total').textContent = '0.00';
+            tableBody.appendChild(newRow);
+            attachListeners(newRow);
+            recalc();
+        });
+    }
+
+    function recalc() {
+        let total = 0;
+        tableBody.querySelectorAll('.po-item-row').forEach(row => {
+            const qty = parseFloat(row.querySelector('.po-qty-input')?.value || 0);
+            const cost = parseFloat(row.querySelector('.po-cost-input')?.value || 0);
+            const line = qty * cost;
+            const lineEl = row.querySelector('.po-line-total');
+            if (lineEl) lineEl.textContent = line.toFixed(2);
+            total += line;
+        });
+        if (grandTotalEl) grandTotalEl.textContent = total.toFixed(2);
+    }
+
+    recalc();
+});
+</script>
+{% endblock %}

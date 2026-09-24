@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Stock Adjustment{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Inventory Stock Adjustment</h1>
+        <div class="page-subtitle">Manually increment or deduct stock with auditable ledger tracking</div>
+    </div>
+    <div>
+        <a href="{% url 'inventory:stock_movement_list' %}" class="btn btn-secondary btn-sm">
+            View Movement History &rarr;
+        </a>
+    </div>
+</div>
+
+<div class="card" style="max-width: 640px; margin: 0 auto;">
+    <div class="card-header">
+        <h2 class="card-title">Record Stock Adjustment</h2>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label class="form-label">Select Product *</label>
+                {{ form.product }}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Adjustment Type *</label>
+                {{ form.movement_type }}
+                <div class="form-help">Choose whether to add (+) or subtract (-) units from current stock</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Quantity *</label>
+                {{ form.quantity }}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Reference / Batch Number</label>
+                {{ form.reference_number }}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Reason / Notes</label>
+                {{ form.notes }}
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; border-top: 1px solid var(--border-light); padding-top: 1.25rem;">
+                <a href="{% url 'inventory:product_list' %}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">Apply Stock Adjustment</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

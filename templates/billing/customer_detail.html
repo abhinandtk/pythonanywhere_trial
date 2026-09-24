@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% block title %}Customer - {{ customer.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <a href="{% url 'billing:customer_list' %}" style="text-decoration: none; color: var(--text-muted);">&larr; Back to Customers</a>
+        <h1 class="page-title" style="margin-top: 0.25rem;">{{ customer.name }}</h1>
+        <div class="page-subtitle">{% if customer.company_name %}{{ customer.company_name }} | {% endif %}Customer ID #{{ customer.id }}</div>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+        <a href="{% url 'billing:invoice_create' %}" class="btn btn-primary btn-sm">
+            + New Invoice for Customer
+        </a>
+        <a href="{% url 'billing:customer_update' customer.id %}" class="btn btn-secondary btn-sm">
+            ✏️ Edit Profile
+        </a>
+    </div>
+</div>
+
+<!-- Financial Summary KPI Grid -->
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <div class="kpi-title">Total Lifetime Billed</div>
+        <div class="kpi-value">{{ CURRENCY }}{{ total_billed|floatformat:2 }}</div>
+        <div class="kpi-footer">Across {{ invoices.count }} invoices</div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-title">Total Payments Received</div>
+        <div class="kpi-value" style="color: var(--success);">{{ CURRENCY }}{{ total_paid|floatformat:2 }}</div>
+        <div class="kpi-footer">Cleared revenue</div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-title">Current Outstanding Balance</div>
+        <div class="kpi-value" style="{% if total_due > 0 %}color: var(--danger);{% endif %}">{{ CURRENCY }}{{ total_due|floatformat:2 }}</div>
+        <div class="kpi-footer">Pending receivables</div>
+    </div>
+</div>
+
+<!-- Customer Info & Invoices Ledger -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+    <div class="card" style="margin-bottom: 0;">
+        <div class="card-header">
+            <h2 class="card-title">Customer Contact & Tax Profile</h2>
+        </div>
+        <div class="card-body">
+            <table class="table" style="font-size: 0.9rem;">
+                <tr>
+                    <td style="width: 35%; color: var(--text-muted); font-weight: 600;">Phone:</td>
+                    <td><strong>{{ customer.phone }}</strong></td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text-muted); font-weight: 600;">Email:</td>
+                    <td>{{ customer.email|default:"Not specified" }}</td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text-muted); font-weight: 600;">GST / Tax ID:</td>
+                    <td><code>{{ customer.tax_id|default:"Not provided" }}</code></td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text-muted); font-weight: 600;">Billing Address:</td>
+                    <td>{{ customer.address|default:"-"|linebreaksbr }}</td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text-muted); font-weight: 600;">Notes:</td>
+                    <td>{{ customer.notes|default:"-" }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 0;">
+        <div class="card-header">
+            <h2 class="card-title">Quick Actions</h2>
+        </div>
+        <div class="card-body" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <a href="{% url 'billing:invoice_create' %}" class="btn btn-primary" style="justify-content: flex-start;">
+                🧾 Create New Invoice for {{ customer.name }}
+            </a>
+            <a href="{% url 'billing:customer_update' customer.id %}" class="btn btn-secondary" style="justify-content: flex-start;">
+                ✏️ Edit Customer Profile & Address
+            </a>
+            <a href="{% url 'billing:customer_delete' customer.id %}" class="btn btn-secondary" style="color: var(--danger); justify-content: flex-start;">
+                🗑️ Delete Customer Account
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Invoices Ledger -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Billing Ledger & Invoices ({{ invoices.count }})</h2>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Date</th>
+                        <th>Grand Total</th>
+                        <th>Paid</th>
+                        <th>Balance Due</th>
+                        <th>Status</th>
+                        <th style="text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inv in invoices %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'billing:invoice_detail' inv.id %}" style="font-weight: 700; color: var(--primary); text-decoration: none;">
+                                {{ inv.invoice_number }}
+                            </a>
+                        </td>
+                        <td>{{ inv.invoice_date|date:"M d, Y" }}</td>
+                        <td><strong>{{ CURRENCY }}{{ inv.grand_total|floatformat:2 }}</strong></td>
+                        <td style="color: var(--success);">{{ CURRENCY }}{{ inv.amount_paid|floatformat:2 }}</td>
+                        <td style="{% if inv.balance_due > 0 %}color: var(--danger); font-weight: 700;{% endif %}">{{ CURRENCY }}{{ inv.balance_due|floatformat:2 }}</td>
+                        <td>
+                            <span class="badge {% if inv.status == 'PAID' %}badge-success{% elif inv.status == 'PARTIALLY_PAID' %}badge-warning{% elif inv.status == 'CANCELLED' %}badge-danger{% else %}badge-info{% endif %}">
+                                {{ inv.get_status_display }}
+                            </span>
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <a href="{% url 'billing:invoice_detail' inv.id %}" class="btn btn-secondary btn-sm">View</a>
+                            <a href="{% url 'billing:invoice_print' inv.id %}" target="_blank" class="btn btn-secondary btn-sm">Print</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">No invoices issued for this customer yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

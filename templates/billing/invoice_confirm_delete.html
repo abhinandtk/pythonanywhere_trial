@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Delete Invoice - {{ invoice.invoice_number }}{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 520px; margin: 3rem auto;">
+    <div class="card-header">
+        <h2 class="card-title" style="color: var(--danger);">Delete Invoice</h2>
+    </div>
+    <div class="card-body">
+        <p style="margin-bottom: 1rem;">
+            Are you sure you want to permanently delete invoice <strong>{{ invoice.invoice_number }}</strong>?
+        </p>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+            If the invoice has not already been cancelled, the associated item quantities will be restored back to inventory stock.
+        </p>
+        <form method="post" style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+            {% csrf_token %}
+            <a href="{% url 'billing:invoice_detail' invoice.id %}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-danger">Yes, Delete Invoice</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

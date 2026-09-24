@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}Purchase Orders & Inward Stock{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Purchase Orders & Stock Inward</h1>
+        <div class="page-subtitle">Track supplier purchases, replenishment, and incoming inventory receipts</div>
+    </div>
+    <div>
+        <a href="{% url 'billing:purchase_create' %}" class="btn btn-primary btn-sm">
+            + New Purchase Order / Stock In
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body" style="padding: 0;">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>PO Number</th>
+                        <th>Supplier</th>
+                        <th>Order Date</th>
+                        <th>Received Date</th>
+                        <th>Total Cost</th>
+                        <th>Status</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for po in page_obj %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'billing:purchase_detail' po.id %}" style="font-weight: 700; color: var(--primary); text-decoration: none;">
+                                {{ po.po_number }}
+                            </a>
+                        </td>
+                        <td>
+                            <strong>{{ po.supplier.name }}</strong>
+                            {% if po.supplier.company_name %}<div style="font-size: 0.75rem; color: var(--text-muted);">{{ po.supplier.company_name }}</div>{% endif %}
+                        </td>
+                        <td>{{ po.order_date|date:"M d, Y" }}</td>
+                        <td>{{ po.received_date|date:"M d, Y"|default:"-" }}</td>
+                        <td><strong>{{ CURRENCY }}{{ po.total_amount|floatformat:2 }}</strong></td>
+                        <td>
+                            <span class="badge {% if po.status == 'RECEIVED' %}badge-success{% elif po.status == 'CANCELLED' %}badge-danger{% else %}badge-warning{% endif %}">
+                                {{ po.get_status_display }}
+                            </span>
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <a href="{% url 'billing:purchase_detail' po.id %}" class="btn btn-secondary btn-sm">View</a>
+                            {% if po.status == 'PENDING' %}
+                            <a href="{% url 'billing:purchase_receive' po.id %}" class="btn btn-success btn-sm">Receive Goods</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                            No purchase orders found. <a href="{% url 'billing:purchase_create' %}" style="color: var(--primary); font-weight: 600;">Create a purchase order</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <div style="padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-light);">
+            <div style="font-size: 0.85rem; color: var(--text-muted);">
+                Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-secondary btn-sm">&laquo; Previous</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="btn btn-secondary btn-sm">Next &raquo;</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

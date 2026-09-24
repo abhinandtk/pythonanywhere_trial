@@ -1,0 +1,334 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard & Inventory Analytics{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Operational Dashboard</h1>
+        <div class="page-subtitle">Real-time revenue metrics, inventory valuation, and stock alerts</div>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+        <a href="{% url 'inventory:stock_adjust' %}" class="btn btn-secondary btn-sm">
+            ⚡ Quick Stock Adjustment
+        </a>
+        <a href="{% url 'billing:invoice_create' %}" class="btn btn-primary btn-sm">
+            + New Sale Invoice
+        </a>
+    </div>
+</div>
+
+<!-- KPI Metrics Grid -->
+<div class="kpi-grid">
+    <!-- Total Revenue All Time -->
+    <div class="kpi-card">
+        <div class="kpi-header">
+            <span class="kpi-title">Total Sales Revenue</span>
+            <div class="kpi-icon icon-purple">
+                <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+            </div>
+        </div>
+        <div class="kpi-value">{{ CURRENCY }}{{ total_sales_all_time|floatformat:2 }}</div>
+        <div class="kpi-footer">
+            <span>Collected: <strong>{{ CURRENCY }}{{ total_paid_received|floatformat:2 }}</strong></span>
+        </div>
+    </div>
+
+    <!-- Outstanding Receivables -->
+    <div class="kpi-card">
+        <div class="kpi-header">
+            <span class="kpi-title">Outstanding Dues</span>
+            <div class="kpi-icon icon-amber">
+                <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+                </svg>
+            </div>
+        </div>
+        <div class="kpi-value" style="color: var(--warning-text);">{{ CURRENCY }}{{ total_outstanding_due|floatformat:2 }}</div>
+        <div class="kpi-footer">
+            <span>Unpaid / partial invoices</span>
+        </div>
+    </div>
+
+    <!-- Inventory Valuation -->
+    <div class="kpi-card">
+        <div class="kpi-header">
+            <span class="kpi-title">Total Stock Valuation</span>
+            <div class="kpi-icon icon-green">
+                <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
+                </svg>
+            </div>
+        </div>
+        <div class="kpi-value">{{ CURRENCY }}{{ total_stock_retail_value|floatformat:2 }}</div>
+        <div class="kpi-footer">
+            <span>Cost basis: {{ CURRENCY }}{{ total_stock_cost_value|floatformat:2 }}</span>
+        </div>
+    </div>
+
+    <!-- Stock Alerts -->
+    <div class="kpi-card">
+        <div class="kpi-header">
+            <span class="kpi-title">Stock Alert Status</span>
+            <div class="kpi-icon" style="background-color: var(--danger-light); color: var(--danger);">
+                <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                </svg>
+            </div>
+        </div>
+        <div class="kpi-value">
+            <span style="color: var(--warning-text);">{{ low_stock_count }} Low</span> / 
+            <span style="color: var(--danger-text);">{{ out_of_stock_count }} Out</span>
+        </div>
+        <div class="kpi-footer">
+            <span>Across {{ total_products_count }} active catalog items</span>
+        </div>
+    </div>
+</div>
+
+<!-- Charts & Top Products Row -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+    <!-- Sales Trend Chart -->
+    <div class="card" style="margin-bottom: 0;">
+        <div class="card-header">
+            <h2 class="card-title">7-Day Sales Trend</h2>
+            <span class="badge badge-neutral">Daily Revenue</span>
+        </div>
+        <div class="card-body">
+            <canvas id="salesTrendChart" height="200"></canvas>
+        </div>
+    </div>
+
+    <!-- Top Selling Products -->
+    <div class="card" style="margin-bottom: 0;">
+        <div class="card-header">
+            <h2 class="card-title">Top Selling Products</h2>
+            <a href="{% url 'inventory:product_list' %}" style="font-size: 0.8rem; color: var(--primary); text-decoration: none; font-weight: 600;">View Catalog &rarr;</a>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Units Sold</th>
+                            <th>Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in top_selling_items %}
+                        <tr>
+                            <td>
+                                <strong>{{ item.product__name }}</strong><br>
+                                <span style="font-size: 0.75rem; color: var(--text-muted);">SKU: {{ item.product__sku }}</span>
+                            </td>
+                            <td><span class="badge badge-info">{{ item.total_qty|floatformat:0 }} units</span></td>
+                            <td><strong>{{ CURRENCY }}{{ item.total_revenue|floatformat:2 }}</strong></td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 2rem;">No sales data available yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Low Stock Alerts & Recent Movements -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+    <!-- Low Stock Alert Box -->
+    <div class="card" style="margin-bottom: 0;">
+        <div class="card-header">
+            <h2 class="card-title" style="color: var(--danger-text);">⚠️ Critical Stock Warning</h2>
+            <a href="{% url 'inventory:product_list' %}?stock_status=low" style="font-size: 0.8rem; color: var(--danger); text-decoration: none; font-weight: 600;">All Low Stock &rarr;</a>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Item Name</th>
+                            <th>Current Stock</th>
+                            <th>Reorder Level</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in low_stock_items %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'inventory:product_detail' item.id %}" style="text-decoration: none; color: var(--text-main); font-weight: 600;">
+                                    {{ item.name }}
+                                </a>
+                            </td>
+                            <td>
+                                <span class="badge badge-warning">{{ item.current_stock|floatformat:1 }} {{ item.get_unit_display }}</span>
+                            </td>
+                            <td>{{ item.min_stock_level|floatformat:1 }}</td>
+                            <td>
+                                <a href="{% url 'inventory:stock_adjust' %}?product_id={{ item.id }}" class="btn btn-secondary btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">
+                                    + Add Stock
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: var(--success); padding: 2rem;">
+                                ✨ All stock levels are healthy!
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Invoices -->
+    <div class="card" style="margin-bottom: 0;">
+        <div class="card-header">
+            <h2 class="card-title">Recent Invoices</h2>
+            <a href="{% url 'billing:invoice_list' %}" style="font-size: 0.8rem; color: var(--primary); text-decoration: none; font-weight: 600;">View All &rarr;</a>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Customer</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inv in recent_invoices %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'billing:invoice_detail' inv.id %}" style="font-weight: 700; color: var(--primary); text-decoration: none;">
+                                    {{ inv.invoice_number }}
+                                </a>
+                            </td>
+                            <td>{{ inv.customer.name }}</td>
+                            <td><strong>{{ CURRENCY }}{{ inv.grand_total|floatformat:2 }}</strong></td>
+                            <td>
+                                <span class="badge {% if inv.status == 'PAID' %}badge-success{% elif inv.status == 'PARTIALLY_PAID' %}badge-warning{% elif inv.status == 'CANCELLED' %}badge-danger{% else %}badge-info{% endif %}">
+                                    {{ inv.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">No invoices created yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stock Audit Stream -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Recent Inventory Activity & Movement Log</h2>
+        <a href="{% url 'inventory:stock_movement_list' %}" style="font-size: 0.8rem; color: var(--primary); text-decoration: none; font-weight: 600;">Full Audit Log &rarr;</a>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Product</th>
+                        <th>Type</th>
+                        <th>Quantity</th>
+                        <th>Previous Stock</th>
+                        <th>New Stock</th>
+                        <th>Reference</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mov in recent_movements %}
+                    <tr>
+                        <td>{{ mov.created_at|date:"M d, Y H:i" }}</td>
+                        <td>
+                            <a href="{% url 'inventory:product_detail' mov.product.id %}" style="font-weight: 600; color: var(--text-main); text-decoration: none;">
+                                {{ mov.product.name }}
+                            </a>
+                        </td>
+                        <td>
+                            <span class="badge {% if 'IN' in mov.movement_type or 'ADD' in mov.movement_type or 'CUSTOMER' in mov.movement_type %}badge-success{% else %}badge-warning{% endif %}">
+                                {{ mov.get_movement_type_display }}
+                            </span>
+                        </td>
+                        <td><strong>{{ mov.quantity|floatformat:2 }}</strong></td>
+                        <td>{{ mov.previous_stock|floatformat:2 }}</td>
+                        <td><strong style="color: var(--primary);">{{ mov.resulting_stock|floatformat:2 }}</strong></td>
+                        <td><span style="font-size: 0.8rem; color: var(--text-muted);">{{ mov.reference_number|default:"-" }}</span></td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">No stock movements logged yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const ctx = document.getElementById('salesTrendChart');
+    if (ctx) {
+        const labels = {{ chart_dates_json|safe }};
+        const data = {{ chart_sales_json|safe }};
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Revenue ({{ CURRENCY }})',
+                    data: data,
+                    borderColor: '#4f46e5',
+                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.35,
+                    pointBackgroundColor: '#4f46e5',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#f1f5f9' },
+                        ticks: {
+                            callback: function(val) { return '{{ CURRENCY }}' + val; }
+                        }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% block title %}{{ product.name }} - Product Details{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <a href="{% url 'inventory:product_list' %}" style="text-decoration: none; color: var(--text-muted);">&larr; Back to Products</a>
+            <span style="color: var(--text-light);">/</span>
+            <span class="badge {% if product.is_out_of_stock %}badge-danger{% elif product.is_low_stock %}badge-warning{% else %}badge-success{% endif %}">
+                {{ product.stock_status|upper }}
+            </span>
+        </div>
+        <h1 class="page-title" style="margin-top: 0.5rem;">{{ product.name }}</h1>
+        <div class="page-subtitle">SKU: <strong>{{ product.sku }}</strong> {% if product.barcode %}| Barcode: <code>{{ product.barcode }}</code>{% endif %}</div>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+        <a href="{% url 'inventory:stock_adjust' %}?product_id={{ product.id }}" class="btn btn-secondary btn-sm">
+            ⚡ Adjust Stock
+        </a>
+        <a href="{% url 'inventory:product_update' product.id %}" class="btn btn-primary btn-sm">
+            ✏️ Edit Details
+        </a>
+    </div>
+</div>
+
+<!-- Specs Cards Grid -->
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <div class="kpi-title">Current Inventory Level</div>
+        <div class="kpi-value">{{ product.current_stock|floatformat:2 }}</div>
+        <div class="kpi-footer">
+            <span>Unit: <strong>{{ product.get_unit_display }}</strong> (Min alert: {{ product.min_stock_level }})</span>
+        </div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-title">Selling Price & Tax</div>
+        <div class="kpi-value">{{ CURRENCY }}{{ product.selling_price|floatformat:2 }}</div>
+        <div class="kpi-footer">
+            <span>Tax Rate: <strong>{{ product.tax_rate }}%</strong></span>
+        </div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-title">Cost & Margin</div>
+        <div class="kpi-value">{{ CURRENCY }}{{ product.cost_price|floatformat:2 }}</div>
+        <div class="kpi-footer">
+            <span>Unit Cost Basis</span>
+        </div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-title">Total Inventory Retail Value</div>
+        <div class="kpi-value" style="color: var(--primary);">{{ CURRENCY }}{{ product.total_retail_value|floatformat:2 }}</div>
+        <div class="kpi-footer">
+            <span>Cost value: {{ CURRENCY }}{{ product.total_cost_value|floatformat:2 }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- Details & Info -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+    <div class="card" style="margin-bottom: 0;">
+        <div class="card-header">
+            <h2 class="card-title">Product Specifications</h2>
+        </div>
+        <div class="card-body">
+            <table class="table" style="font-size: 0.9rem;">
+                <tr>
+                    <td style="width: 35%; color: var(--text-muted); font-weight: 600;">Category:</td>
+                    <td>{{ product.category.name|default:"Unassigned" }}</td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text-muted); font-weight: 600;">Supplier:</td>
+                    <td>
+                        {% if product.supplier %}
+                        <a href="{% url 'inventory:supplier_list' %}" style="color: var(--primary); text-decoration: none;">{{ product.supplier.name }}</a>
+                        {% else %}
+                        Unassigned
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text-muted); font-weight: 600;">Status:</td>
+                    <td>{% if product.is_active %}<span class="badge badge-success">Active</span>{% else %}<span class="badge badge-neutral">Archived</span>{% endif %}</td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text-muted); font-weight: 600;">Description:</td>
+                    <td>{{ product.description|default:"No description provided." }}</td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text-muted); font-weight: 600;">Added On:</td>
+                    <td>{{ product.created_at|date:"F d, Y" }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Recent Invoices for this product -->
+    <div class="card" style="margin-bottom: 0;">
+        <div class="card-header">
+            <h2 class="card-title">Recent Invoices Including This Item</h2>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Invoice</th>
+                            <th>Customer</th>
+                            <th>Qty</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sale in recent_sales %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'billing:invoice_detail' sale.invoice.id %}" style="font-weight: 600; color: var(--primary); text-decoration: none;">
+                                    {{ sale.invoice.invoice_number }}
+                                </a>
+                            </td>
+                            <td>{{ sale.invoice.customer.name }}</td>
+                            <td>{{ sale.quantity|floatformat:0 }}</td>
+                            <td>{{ CURRENCY }}{{ sale.total_price|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">No sales recorded for this product yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stock Movement History for this product -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Stock Movement & Audit History ({{ movements.count }})</h2>
+        <a href="{% url 'inventory:stock_adjust' %}?product_id={{ product.id }}" class="btn btn-secondary btn-sm">+ Add Entry</a>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Type</th>
+                        <th>Qty Changed</th>
+                        <th>Prev Stock</th>
+                        <th>New Stock</th>
+                        <th>Reference</th>
+                        <th>Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in movements %}
+                    <tr>
+                        <td>{{ m.created_at|date:"M d, Y H:i" }}</td>
+                        <td>
+                            <span class="badge {% if 'IN' in m.movement_type or 'ADD' in m.movement_type or 'CUSTOMER' in m.movement_type %}badge-success{% else %}badge-warning{% endif %}">
+                                {{ m.get_movement_type_display }}
+                            </span>
+                        </td>
+                        <td><strong>{{ m.quantity|floatformat:2 }}</strong></td>
+                        <td>{{ m.previous_stock|floatformat:2 }}</td>
+                        <td><strong style="color: var(--primary);">{{ m.resulting_stock|floatformat:2 }}</strong></td>
+                        <td>{{ m.reference_number|default:"-" }}</td>
+                        <td><span style="font-size: 0.8rem; color: var(--text-muted);">{{ m.notes|default:"-" }}</span></td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">No movement log entries.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

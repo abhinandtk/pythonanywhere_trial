@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}Customers Directory{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Customers & Clients</h1>
+        <div class="page-subtitle">Manage customer profiles, billing ledgers, and contact details</div>
+    </div>
+    <div>
+        <a href="{% url 'billing:customer_create' %}" class="btn btn-primary btn-sm">
+            + Add New Customer
+        </a>
+    </div>
+</div>
+
+<!-- Search Bar -->
+<div class="filter-bar">
+    <form method="get" style="display: flex; flex-wrap: wrap; gap: 0.75rem; width: 100%; align-items: center;">
+        <div class="search-input-wrapper">
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+            </svg>
+            <input type="text" name="q" value="{{ query }}" placeholder="Search customer name, company, email, phone, or tax ID...">
+        </div>
+        <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+        {% if query %}
+        <a href="{% url 'billing:customer_list' %}" class="btn btn-secondary btn-sm" style="color: var(--danger);">Reset</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Customer Table Card -->
+<div class="card">
+    <div class="card-body" style="padding: 0;">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Customer Name</th>
+                        <th>Company / Business</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                        <th>Invoices Issued</th>
+                        <th>Total Billed</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in page_obj %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'billing:customer_detail' c.id %}" style="font-weight: 700; color: var(--text-main); text-decoration: none;">
+                                {{ c.name }}
+                            </a>
+                        </td>
+                        <td>{{ c.company_name|default:"-" }}</td>
+                        <td><strong>{{ c.phone }}</strong></td>
+                        <td>{{ c.email|default:"-" }}</td>
+                        <td>
+                            <a href="{% url 'billing:customer_detail' c.id %}" class="badge badge-info" style="text-decoration: none;">
+                                {{ c.invoices_count|default:c.total_invoices_count }} Invoices
+                            </a>
+                        </td>
+                        <td><strong>{{ CURRENCY }}{{ c.total_billed|floatformat:2 }}</strong></td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <a href="{% url 'billing:customer_detail' c.id %}" class="btn btn-secondary btn-sm">👁️ Ledger</a>
+                            <a href="{% url 'billing:customer_update' c.id %}" class="btn btn-secondary btn-sm">✏️ Edit</a>
+                            <a href="{% url 'billing:customer_delete' c.id %}" class="btn btn-secondary btn-sm" style="color: var(--danger);">🗑️</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                            No customers found. <a href="{% url 'billing:customer_create' %}" style="color: var(--primary); font-weight: 600;">Add your first customer</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <div style="padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-light);">
+            <div style="font-size: 0.85rem; color: var(--text-muted);">
+                Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}&q={{ query }}" class="btn btn-secondary btn-sm">&laquo; Previous</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&q={{ query }}" class="btn btn-secondary btn-sm">Next &raquo;</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

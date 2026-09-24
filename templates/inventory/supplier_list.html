@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}Suppliers Directory{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Suppliers & Vendors</h1>
+        <div class="page-subtitle">Manage suppliers for procurement and stock inward orders</div>
+    </div>
+    <div>
+        <a href="{% url 'inventory:supplier_create' %}" class="btn btn-primary btn-sm">
+            + Add New Supplier
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body" style="padding: 0;">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Supplier / Contact</th>
+                        <th>Company Name</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                        <th>Tax ID / GSTIN</th>
+                        <th>Catalog Items</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in suppliers %}
+                    <tr>
+                        <td>
+                            <strong style="font-size: 0.95rem;">{{ s.name }}</strong>
+                            {% if s.address %}<div style="font-size: 0.75rem; color: var(--text-muted);">{{ s.address|truncatechars:40 }}</div>{% endif %}
+                        </td>
+                        <td>{{ s.company_name|default:"-" }}</td>
+                        <td><strong>{{ s.phone }}</strong></td>
+                        <td>{{ s.email|default:"-" }}</td>
+                        <td><code>{{ s.tax_id|default:"-" }}</code></td>
+                        <td><span class="badge badge-info">{{ s.product_count }} items</span></td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <a href="{% url 'inventory:supplier_update' s.id %}" class="btn btn-secondary btn-sm">✏️ Edit</a>
+                            <a href="{% url 'inventory:supplier_delete' s.id %}" class="btn btn-secondary btn-sm" style="color: var(--danger);">🗑️</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                            No suppliers added yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

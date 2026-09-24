@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Product Categories{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Product Categories</h1>
+        <div class="page-subtitle">Organize and group products for reporting and POS catalog</div>
+    </div>
+    <div>
+        <a href="{% url 'inventory:category_create' %}" class="btn btn-primary btn-sm">
+            + Add New Category
+        </a>
+    </div>
+</div>
+
+<div class="card" style="max-width: 900px;">
+    <div class="card-body" style="padding: 0;">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Category Name</th>
+                        <th>Description</th>
+                        <th>Products Linked</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cat in categories %}
+                    <tr>
+                        <td>
+                            <strong style="font-size: 0.95rem;">{{ cat.name }}</strong>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">Slug: {{ cat.slug }}</div>
+                        </td>
+                        <td>{{ cat.description|default:"-" }}</td>
+                        <td>
+                            <a href="{% url 'inventory:product_list' %}?category={{ cat.id }}" class="badge badge-info" style="text-decoration: none;">
+                                {{ cat.product_count }} Product{{ cat.product_count|pluralize }}
+                            </a>
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <a href="{% url 'inventory:category_update' cat.id %}" class="btn btn-secondary btn-sm">✏️ Edit</a>
+                            <a href="{% url 'inventory:category_delete' cat.id %}" class="btn btn-secondary btn-sm" style="color: var(--danger);">🗑️</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                            No categories created yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

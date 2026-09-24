@@ -1,0 +1,289 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tax Invoice - {{ invoice.invoice_number }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+        }
+        body {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            padding: 2rem 1rem;
+        }
+        .print-actions {
+            max-width: 800px;
+            margin: 0 auto 1.5rem auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.25rem;
+            background-color: #4f46e5;
+            color: #ffffff;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+        }
+        .invoice-sheet {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 3rem;
+            position: relative;
+        }
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .company-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #4f46e5;
+        }
+        .invoice-label {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #0f172a;
+            text-align: right;
+        }
+        .meta-text {
+            font-size: 0.85rem;
+            color: #64748b;
+            line-height: 1.5;
+            margin-top: 0.25rem;
+        }
+        .billing-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+        }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2rem;
+            font-size: 0.875rem;
+        }
+        .table th {
+            background-color: #f8fafc;
+            color: #475569;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #cbd5e1;
+            text-align: left;
+        }
+        .table td {
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .totals-table {
+            width: 320px;
+            margin-left: auto;
+            margin-bottom: 2rem;
+            font-size: 0.875rem;
+        }
+        .totals-table tr td {
+            padding: 0.4rem 0.5rem;
+        }
+        .totals-table tr td:last-child {
+            text-align: right;
+            font-weight: 600;
+        }
+        .grand-total-row {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #4f46e5;
+            border-top: 2px solid #cbd5e1;
+        }
+        .status-stamp {
+            display: inline-block;
+            padding: 0.35rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border-radius: 9999px;
+            margin-top: 0.5rem;
+        }
+        .stamp-paid {
+            background-color: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .stamp-unpaid {
+            background-color: #eff6ff;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
+        .stamp-partial {
+            background-color: #fffbeb;
+            color: #92400e;
+            border: 1px solid #fde68a;
+        }
+        .terms-section {
+            border-top: 1px solid #e2e8f0;
+            padding-top: 1.5rem;
+            font-size: 0.8rem;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        @media print {
+            body {
+                background: white !important;
+                padding: 0 !important;
+            }
+            .print-actions {
+                display: none !important;
+            }
+            .invoice-sheet {
+                box-shadow: none !important;
+                padding: 1.5rem !important;
+                max-width: 100% !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-actions">
+        <a href="{% url 'billing:invoice_detail' invoice.id %}" style="color: #4f46e5; text-decoration: none; font-weight: 600;">&larr; Back to App</a>
+        <button class="btn" onclick="window.print()">
+            🖨️ Print / Save as PDF
+        </button>
+    </div>
+
+    <div class="invoice-sheet">
+        <div class="header-row">
+            <div>
+                <div class="company-title">{{ COMPANY_NAME }}</div>
+                <div class="meta-text">
+                    {{ COMPANY_ADDRESS }}<br>
+                    Phone: {{ COMPANY_PHONE }} | Email: {{ COMPANY_EMAIL }}<br>
+                    GSTIN / Tax ID: <strong>{{ COMPANY_GST }}</strong>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <div class="invoice-label">TAX INVOICE</div>
+                <div class="meta-text">
+                    Invoice No: <strong>{{ invoice.invoice_number }}</strong><br>
+                    Date: <strong>{{ invoice.invoice_date|date:"F d, Y" }}</strong><br>
+                    Due Date: <strong>{{ invoice.due_date|date:"F d, Y" }}</strong>
+                </div>
+                <div class="status-stamp {% if invoice.status == 'PAID' %}stamp-paid{% elif invoice.status == 'PARTIALLY_PAID' %}stamp-partial{% else %}stamp-unpaid{% endif %}">
+                    {{ invoice.get_status_display }}
+                </div>
+            </div>
+        </div>
+
+        <div class="billing-row">
+            <div>
+                <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #94a3b8;">Billed To:</div>
+                <div style="font-size: 1.05rem; font-weight: 700; margin-top: 0.2rem;">{{ invoice.customer.name }}</div>
+                <div class="meta-text">
+                    {% if invoice.customer.company_name %}<strong>{{ invoice.customer.company_name }}</strong><br>{% endif %}
+                    Phone: {{ invoice.customer.phone }}<br>
+                    {% if invoice.customer.email %}Email: {{ invoice.customer.email }}<br>{% endif %}
+                    {% if invoice.customer.address %}{{ invoice.customer.address }}<br>{% endif %}
+                    {% if invoice.customer.tax_id %}GST / Tax ID: {{ invoice.customer.tax_id }}{% endif %}
+                </div>
+            </div>
+
+            <div style="text-align: right;">
+                <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #94a3b8;">Payment Mode:</div>
+                <div style="font-size: 1rem; font-weight: 700; margin-top: 0.2rem;">{{ invoice.get_payment_method_display }}</div>
+            </div>
+        </div>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th style="width: 40px;">#</th>
+                    <th>Item Description</th>
+                    <th style="text-align: right;">Qty</th>
+                    <th style="text-align: right;">Rate</th>
+                    <th style="text-align: right;">Tax %</th>
+                    <th style="text-align: right;">Discount</th>
+                    <th style="text-align: right;">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in invoice.items.all %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                        <strong>{{ item.product.name }}</strong>
+                        <div style="font-size: 0.75rem; color: #64748b;">SKU: {{ item.product.sku }}</div>
+                    </td>
+                    <td style="text-align: right;">{{ item.quantity|floatformat:1 }} {{ item.product.get_unit_display }}</td>
+                    <td style="text-align: right;">{{ CURRENCY }}{{ item.unit_price|floatformat:2 }}</td>
+                    <td style="text-align: right;">{{ item.tax_rate|floatformat:1 }}%</td>
+                    <td style="text-align: right;">{{ CURRENCY }}{{ item.discount_amount|floatformat:2 }}</td>
+                    <td style="text-align: right; font-weight: 700;">{{ CURRENCY }}{{ item.total_price|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <table class="totals-table">
+            <tr>
+                <td>Subtotal:</td>
+                <td>{{ CURRENCY }}{{ invoice.subtotal|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td>Tax Amount:</td>
+                <td>{{ CURRENCY }}{{ invoice.tax_amount|floatformat:2 }}</td>
+            </tr>
+            {% if invoice.discount_amount > 0 %}
+            <tr>
+                <td>Discount:</td>
+                <td style="color: #dc2626;">-{{ CURRENCY }}{{ invoice.discount_amount|floatformat:2 }}</td>
+            </tr>
+            {% endif %}
+            <tr class="grand-total-row">
+                <td style="padding-top: 0.6rem;">Grand Total:</td>
+                <td style="padding-top: 0.6rem;">{{ CURRENCY }}{{ invoice.grand_total|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td>Amount Paid:</td>
+                <td style="color: #059669;">{{ CURRENCY }}{{ invoice.amount_paid|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td>Balance Due:</td>
+                <td style="color: #dc2626;">{{ CURRENCY }}{{ invoice.balance_due|floatformat:2 }}</td>
+            </tr>
+        </table>
+
+        <div class="terms-section">
+            {% if invoice.notes %}<div><strong>Notes:</strong> {{ invoice.notes }}</div>{% endif %}
+            {% if invoice.terms %}<div style="margin-top: 0.35rem;"><strong>Terms & Conditions:</strong><br>{{ invoice.terms|linebreaksbr }}</div>{% endif %}
+            <div style="margin-top: 2rem; display: flex; justify-content: space-between; align-items: flex-end;">
+                <div>Thank you for choosing {{ COMPANY_NAME }}!</div>
+                <div style="text-align: center; border-top: 1px dashed #94a3b8; width: 180px; padding-top: 0.5rem;">
+                    Authorized Signatory
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

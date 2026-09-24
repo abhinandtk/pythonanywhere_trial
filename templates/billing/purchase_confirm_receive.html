@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Receive Goods - {{ po.po_number }}{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 540px; margin: 3rem auto;">
+    <div class="card-header">
+        <h2 class="card-title" style="color: var(--success);">Confirm Goods Receipt (PO {{ po.po_number }})</h2>
+    </div>
+    <div class="card-body">
+        <p style="margin-bottom: 1rem;">
+            Confirming this will mark Purchase Order <strong>{{ po.po_number }}</strong> as Received and automatically increment the inventory stock quantities for all items in this order.
+        </p>
+        <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+            📦 Total value of inward stock: <strong>{{ CURRENCY }}{{ po.total_amount|floatformat:2 }}</strong>
+        </div>
+        <form method="post" style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+            {% csrf_token %}
+            <a href="{% url 'billing:purchase_detail' po.id %}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-success">Confirm & Add Stock</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

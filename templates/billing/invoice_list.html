@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% block title %}Sales Invoices{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Sales Invoices & Billing</h1>
+        <div class="page-subtitle">Track issued invoices, payment status, receipts, and receivables</div>
+    </div>
+    <div>
+        <a href="{% url 'billing:invoice_create' %}" class="btn btn-primary btn-sm">
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            + Create New Invoice
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-bar">
+    <form method="get" style="display: flex; flex-wrap: wrap; gap: 0.75rem; width: 100%; align-items: center;">
+        <div class="search-input-wrapper">
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+            </svg>
+            <input type="text" name="q" value="{{ query }}" placeholder="Search by invoice #, customer name, phone...">
+        </div>
+
+        <select name="status" style="width: auto; min-width: 150px;" onchange="this.form.submit()">
+            <option value="">All Statuses</option>
+            {% for code, label in status_choices %}
+            <option value="{{ code }}" {% if selected_status == code %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+
+        <select name="customer" style="width: auto; min-width: 170px;" onchange="this.form.submit()">
+            <option value="">All Customers</option>
+            {% for c in customers %}
+            <option value="{{ c.id }}" {% if selected_customer == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+            {% endfor %}
+        </select>
+
+        <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+        {% if query or selected_status or selected_customer %}
+        <a href="{% url 'billing:invoice_list' %}" class="btn btn-secondary btn-sm" style="color: var(--danger);">Reset</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Invoices Table Card -->
+<div class="card">
+    <div class="card-body" style="padding: 0;">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Customer</th>
+                        <th>Date</th>
+                        <th>Payment Mode</th>
+                        <th>Grand Total</th>
+                        <th>Paid</th>
+                        <th>Balance Due</th>
+                        <th>Status</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inv in page_obj %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'billing:invoice_detail' inv.id %}" style="font-weight: 700; color: var(--primary); text-decoration: none;">
+                                {{ inv.invoice_number }}
+                            </a>
+                        </td>
+                        <td>
+                            <a href="{% url 'billing:customer_detail' inv.customer.id %}" style="font-weight: 600; color: var(--text-main); text-decoration: none;">
+                                {{ inv.customer.name }}
+                            </a>
+                            {% if inv.customer.phone %}
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">{{ inv.customer.phone }}</div>
+                            {% endif %}
+                        </td>
+                        <td>{{ inv.invoice_date|date:"M d, Y" }}</td>
+                        <td><span class="badge badge-neutral">{{ inv.get_payment_method_display }}</span></td>
+                        <td><strong>{{ CURRENCY }}{{ inv.grand_total|floatformat:2 }}</strong></td>
+                        <td style="color: var(--success);">{{ CURRENCY }}{{ inv.amount_paid|floatformat:2 }}</td>
+                        <td style="{% if inv.balance_due > 0 %}color: var(--danger); font-weight: 700;{% endif %}">
+                            {{ CURRENCY }}{{ inv.balance_due|floatformat:2 }}
+                        </td>
+                        <td>
+                            <span class="badge {% if inv.status == 'PAID' %}badge-success{% elif inv.status == 'PARTIALLY_PAID' %}badge-warning{% elif inv.status == 'CANCELLED' %}badge-danger{% else %}badge-info{% endif %}">
+                                {{ inv.get_status_display }}
+                            </span>
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <a href="{% url 'billing:invoice_detail' inv.id %}" class="btn btn-secondary btn-sm" style="padding: 0.25rem 0.5rem;">
+                                👁️ View
+                            </a>
+                            <a href="{% url 'billing:invoice_print' inv.id %}" target="_blank" class="btn btn-secondary btn-sm" style="padding: 0.25rem 0.5rem;" title="Print / PDF">
+                                🖨️ Print
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                            No invoices found. <a href="{% url 'billing:invoice_create' %}" style="color: var(--primary); font-weight: 600;">Create your first invoice</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <div style="padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-light);">
+            <div style="font-size: 0.85rem; color: var(--text-muted);">
+                Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}&q={{ query }}&status={{ selected_status }}&customer={{ selected_customer }}" class="btn btn-secondary btn-sm">&laquo; Previous</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&q={{ query }}&status={{ selected_status }}&customer={{ selected_customer }}" class="btn btn-secondary btn-sm">Next &raquo;</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

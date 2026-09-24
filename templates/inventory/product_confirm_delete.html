@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Confirm Deletion - {{ product.name }}{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 520px; margin: 3rem auto;">
+    <div class="card-header">
+        <h2 class="card-title" style="color: var(--danger);">Confirm Product Deletion</h2>
+    </div>
+    <div class="card-body">
+        <p style="margin-bottom: 1rem;">
+            Are you sure you want to delete product <strong>"{{ product.name }}"</strong> (SKU: <code>{{ product.sku }}</code>)?
+        </p>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+            Note: If this product has historical invoices or stock records, it will be safely deactivated/archived to preserve ledger integrity.
+        </p>
+        <form method="post" style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+            {% csrf_token %}
+            <a href="{% url 'inventory:product_list' %}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-danger">Yes, Delete / Archive</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
